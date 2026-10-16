@@ -235,7 +235,18 @@ def main() -> int:
                     "error": str(exc),
                     "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 })
-                record["failed"].append(alerts[-1])
+                # Keep one entry per contact + step: the state file describes the current
+                # permanent failures, not their history (the history is in the alert log and
+                # the run log). Without this, every rehearsal of the failure path piles up
+                # duplicate rows for the same contact and the file stops being readable.
+                record["failed"] = [
+                    entry
+                    for entry in record["failed"]
+                    if not (
+                        entry.get("contact_id") == alerts[-1]["contact_id"]
+                        and entry.get("step") == alerts[-1]["step"]
+                    )
+                ] + [alerts[-1]]
 
     state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
@@ -253,3 +264,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+，，你看
